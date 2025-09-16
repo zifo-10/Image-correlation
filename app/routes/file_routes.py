@@ -7,21 +7,10 @@ from app.container import get_file_service
 from app.exceptions.custom_exception import CustomHTTPException, CustomException
 from app.service.file_service import FileService
 
-router = APIRouter(prefix="/file", tags=["users"])
-
-
-@router.post("")
-async def create_user(service: FileService = Depends(get_file_service)):
-    try:
-        user_id = await service.create_file()
-        return {"user_id": user_id}
-    except CustomException as e:
-        raise CustomHTTPException(status_code=e.status_code, detail=e.detail,
-                                  exception_type=e.exception_type, additional_info=e.additional_info)
-
+router = APIRouter(prefix="/file", tags=["File"])
 
 @router.post("/extract-image")
-async def process_file(
+async def extract_image(
         uploaded_file: UploadFile = File(...),
         service: FileService = Depends(get_file_service),
 ):
@@ -44,7 +33,7 @@ async def process_file(
 
 
 @router.post("/process-file")
-async def extract_images_endpoint(
+async def process_file_pdf(
         pdf_file: UploadFile = File(...),
         service: FileService = Depends(get_file_service),
 ):

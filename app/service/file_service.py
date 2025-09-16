@@ -1,6 +1,5 @@
-import os
-
 import fitz
+import os
 
 from app.client.openai_client import OpenAIClient
 from app.client.storage import StorageClient
@@ -24,8 +23,6 @@ class FileService:
         self.storage_service = storage_service
         self.image_repo = image_repo
         self.openai_client = openai_client
-
-    import os
 
     def save_images_from_pdf(self, pdf_bytes: bytes, output_dir: str = "images") -> list[str]:
         """
@@ -145,13 +142,15 @@ class FileService:
             for img in images:
                 image_description = "description"
                 image_type = "image"
+                image_code = "code"
                 print("Uploading image:", img["filename"])
                 # Insert image metadata in ImageRepository
                 img_record = await self.image_repo.create(
                     {
                         "file_id": str(file_record.id),
                         "description": image_description,
-                        "type": image_type
+                        "type": image_type,
+                        "code": image_code,
                     }
                 )
 
