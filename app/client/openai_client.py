@@ -5,7 +5,7 @@ from typing import Optional, List, Literal
 from openai import OpenAI
 from openai.lib import ResponseFormatT
 from pydantic import BaseModel
-
+from app.constant_manager import image_description_prompt
 
 # Structured response model
 class ResponseModel(BaseModel):
@@ -65,7 +65,7 @@ class OpenAIClient:
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Describe this image in detail."},
+                            {"type": "text", "text": image_description_prompt},
                             {
                                 "type": "image_url",
                                 "image_url": {
