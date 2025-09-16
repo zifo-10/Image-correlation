@@ -1,13 +1,15 @@
 import os
-import uuid
 
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Query
+from tavily import TavilyClient
 
+from app.config import settings
 from app.container import get_file_service
 from app.exceptions.custom_exception import CustomHTTPException, CustomException
 from app.service.file_service import FileService
 
 router = APIRouter(prefix="/file", tags=["File"])
+
 
 @router.post("/extract-image")
 async def extract_image(
@@ -69,3 +71,28 @@ async def describe_image(file: UploadFile = File(...),
     except Exception as e:
         raise CustomHTTPException(status_code=500, detail="Internal Server Error",
                                   exception_type="InternalServerError", additional_info={"error": str(e)})
+
+
+@router.get("/search-image")
+async def search_image(
+        query: str = Query(..., description="Search query"),
+        top_n: int = Query(1, ge=1, le=10, description="Number of images to return"),
+):
+    try:
+        client = TavilyClient(api_key=settings.TAVILY_API_KEY)
+        response = client.search(
+            query=query,
+            include_images=True,
+            max_results=top_n,
+        )
+
+        images = response.get("images", [])
+
+        return {"images": images[:top_n]}
+    except Exception as e:
+        raise CustomHTTPException(
+            status_code=500,
+            detail="Failed to fetch images",
+            exception_type="TavilySearchError",
+            additional_info={"error": str(e)},
+        )

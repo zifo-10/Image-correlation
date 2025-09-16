@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     STORAGE_KEY: str
     STORAGE_URL: str
     OPENAI_API_KEY: str
+    TAVILY_API_KEY: str
 
     # Debug mode
     DEBUG: bool = Field(default=False)
