@@ -1,13 +1,58 @@
 import base64
+import json
 import mimetypes
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Union
+
 
 from openai import OpenAI
 from openai.lib import ResponseFormatT
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from app.constant_manager import image_description_prompt
 
 # Structured response model
+class StrictBaseModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    
+class TableDataModel(StrictBaseModel):
+    type: Literal["table"] = Field(default="table")
+    headers: List[str] = Field(description="The headers of the table")
+    data: List[List[str|int]] = Field(description="The data of the table")
+    title: str = Field(description="The title of the table")
+    caption: Optional[str] = Field(default=None, description="The caption of the table")
+
+
+class ChartDataDetailsModel(StrictBaseModel):
+    type: Literal["chart"] = Field(default="chart")
+    labels: List[str|int] = Field(
+        description="Labels of the chart",
+    )
+    datasets: List[float] = Field(
+        description="Datasets of the chart",
+    )
+
+class ChartDataModel(StrictBaseModel):
+    chart_type: Literal["bar", "line", "pie", "radar", "doughnut"] = Field(
+        description="The type of the chart"
+    )
+    data: ChartDataDetailsModel = Field(description="The data of the chart")
+    title: str = Field(description="The title of the chart")
+
+
+class ImageModel(StrictBaseModel):
+    type: Literal["image"] = Field(default="image")
+    # url: str = Field(description="The url of the image")
+    title: str = Field(description="The title of the image")
+    alt_text: Optional[str] = Field(
+        description="The alt text of the image", default=None)
+    
+
+class GeneratedVisualItemModel(StrictBaseModel):
+    type: Literal["chart", "image", "table"] = Field(
+        description="The type of the item")
+    content: Union[ChartDataModel, ImageModel, TableDataModel] = Field(
+        description="The content of the item")
+    description: str = Field(description="The description of the image")
+    
 class ResponseModel(BaseModel):
     description: str
     image_type: Literal["chart", "image", "diagram", "screenshot"]
@@ -58,14 +103,14 @@ class OpenAIClient:
         try:
             mime_type = mimetypes.guess_type("file.png")[0] or "image/jpeg"
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
-
+            formatted_prompt = image_description_prompt.format(response_schema=json.dumps(GeneratedVisualItemModel.model_json_schema()))
             response = self.client.chat.completions.parse(
                 model=model,
                 messages=[
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": image_description_prompt},
+                            {"type": "text", "text": formatted_prompt},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -76,7 +121,7 @@ class OpenAIClient:
                     }
                 ],
                 max_tokens=max_tokens,
-                response_format=ResponseModel,
+                response_format=GeneratedVisualItemModel,
             )
 
             return response.choices[0].message.parsed
